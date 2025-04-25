@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trivia Escolar</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .question {
+      font-size: 1.2em;
+      margin-bottom: 20px;
+    }
+    .options button {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      font-size: 1em;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .options button.correct {
+      background-color: #d4edda;
+      border-color: #28a745;
+      color: #155724;
+    }
+    .options button.incorrect {
+      background-color: #f8d7da;
+      border-color: #dc3545;
+      color: #721c24;
+    }
+    #nextBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1em;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #nextBtn:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    #result {
+      font-size: 1.3em;
+      text-align: center;
+      margin-top: 30px;
+    }
+    #timer {
+      text-align: right;
+      font-size: 1em;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .bar {
+      height: 10px;
+      background: #ccc;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: #007bff;
+      width: 100%;
+      transition: width 1s linear;
+    }
+    .shake {
+      animation: shakeX 1s;
+    }
+  </style>
+</head>
+<body>
+  <div class="container animate__animated animate__fadeIn">
+    <div id="quiz">
+      <div id="timer">Tiempo restante: <span id="countdown">20</span> s</div>
+      <div class="bar"><div id="barFill" class="bar-fill"></div></div>
+      <div class="question" id="question"></div>
+      <div class="options" id="options"></div>
+      <button id="nextBtn" disabled>Siguiente</button>
+    </div>
+    <div id="result" class="animate__animated animate__fadeIn" style="display:none;"></div>
+    <audio id="timeoutSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+  </div>
+
+  <script>
+    const questions = [
+      { q: "¿Cuál es el planeta más cercano al sol?", a: ["Venus", "Mercurio", "Marte", "Júpiter"], c: 1 },
+      { q: "¿Quién escribió 'Cien años de soledad'?", a: ["Mario Vargas Llosa", "Pablo Neruda", "Gabriel García Márquez", "Jorge Luis Borges"], c: 2 },
+      { q: "¿Qué órgano del cuerpo humano bombea la sangre?", a: ["Cerebro", "Pulmones", "Riñones", "Corazón"], c: 3 },
+      { q: "¿Cuál es el símbolo químico del agua?", a: ["H2O", "O2", "NaCl", "CO2"], c: 0 },
+      { q: "¿En qué continente se encuentra Egipto?", a: ["Asia", "Europa", "África", "América"], c: 2 },
+      { q: "¿Qué instrumento tiene teclas, cuerdas y martillos?", a: ["Guitarra", "Violín", "Piano", "Arpa"], c: 2 },
+      { q: "¿Cuántos lados tiene un hexágono?", a: ["Cinco", "Seis", "Siete", "Ocho"], c: 1 },
+      { q: "¿Cuál es la capital de Francia?", a: ["Madrid", "Roma", "Londres", "París"], c: 3 },
+      { q: "¿Qué gas respiramos que es esencial para vivir?", a: ["Dióxido de carbono", "Oxígeno", "Nitrógeno", "Helio"], c: 1 },
+      { q: "¿Cuántos días tiene un año bisiesto?", a: ["365", "364", "366", "367"], c: 2 }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 20;
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const nextBtn = document.getElementById("nextBtn");
+    const resultEl = document.getElementById("result");
+    const countdownEl = document.getElementById("countdown");
+    const barFill = document.getElementById("barFill");
+    const timeoutSound = document.getElementById("timeoutSound");
+
+    function startTimer() {
+      timeLeft = 20;
+      countdownEl.textContent = timeLeft;
+      barFill.style.width = "100%";
+
+      timer = setInterval(() => {
+        timeLeft--;
+        countdownEl.textContent = timeLeft;
+        barFill.style.width = `${(timeLeft / 20) * 100}%`;
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          autoSelect();
+        }
+      }, 1000);
+    }
+
+    function autoSelect() {
+      const q = questions[currentQuestion];
+      const buttons = optionsEl.querySelectorAll("button");
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === q.c) btn.classList.add("correct");
+      });
+      nextBtn.disabled = false;
+      timeoutSound.play();
+      document.querySelector(".container").classList.add("animate__shakeX");
+      setTimeout(() => {
+        document.querySelector(".container").classList.remove("animate__shakeX");
+      }, 1000);
+    }
+
+    function showQuestion() {
+      nextBtn.disabled = true;
+      clearInterval(timer);
+      startTimer();
+
+      const q = questions[currentQuestion];
+      questionEl.textContent = q.q;
+      optionsEl.innerHTML = "";
+      q.a.forEach((option, index) => {
+        const btn = document.createElement("button");
+        btn.textContent = option;
+        btn.onclick = () => selectAnswer(btn, index);
+        optionsEl.appendChild(btn);
+      });
+    }
+
+    function selectAnswer(button, index) {
+      clearInterval(timer);
+      const q = questions[currentQuestion];
+      const buttons = optionsEl.querySelectorAll("button");
+      buttons.forEach(btn => btn.disabled = true);
+      if (index === q.c) {
+        button.classList.add("correct");
+        score++;
+      } else {
+        button.classList.add("incorrect");
+        buttons[q.c].classList.add("correct");
+      }
+      nextBtn.disabled = false;
+    }
+
+    nextBtn.addEventListener("click", () => {
+      currentQuestion++;
+      if (currentQuestion < questions.length) {
+        showQuestion();
+      } else {
+        clearInterval(timer);
+        showResult();
+      }
+    });
+
+    function showResult() {
+      document.getElementById("quiz").style.display = "none";
+      let feedback = "";
+      if (score === 10) feedback = "¡Excelente! ¡Lo hiciste perfecto!";
+      else if (score >= 7) feedback = "¡Muy bien hecho! Tienes un buen conocimiento general.";
+      else if (score >= 4) feedback = "¡Bien! Pero puedes mejorar si estudias un poco más.";
+      else feedback = "Necesitas repasar tus conocimientos. ¡Ánimo!";
+
+      resultEl.innerHTML = `Obtuviste <strong>${score}</strong> de 10.<br>${feedback}`;
+      resultEl.style.display = "block";
+    }
+
+    showQuestion();
+  </script>
+</body>
+</html>
